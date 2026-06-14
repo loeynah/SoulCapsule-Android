@@ -12,21 +12,32 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.finalwork.soulcapsule.dto.ApiResponse;
+import com.finalwork.soulcapsule.dto.MoodResponse;
+import com.finalwork.soulcapsule.network.RetrofitClient;
+import com.finalwork.soulcapsule.util.MoodColorConstants;
+import com.finalwork.soulcapsule.util.MoodDateUtils;
+import com.finalwork.soulcapsule.util.MoodStatsHelper;
+import com.finalwork.soulcapsule.util.SessionManager;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
-public class ProfileActivity extends AppCompatActivity {
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
-    private static final int PERIOD_WEEK = 0;
-    private static final int PERIOD_MONTH = 1;
-    private static final int PERIOD_YEAR = 2;
+public class ProfileActivity extends BaseActivity {
 
-    private int currentPeriod = PERIOD_WEEK;
+    private int currentPeriod = MoodStatsHelper.PERIOD_WEEK;
     private int timeOffset = 0;
 
     private TextView tabWeek;
@@ -37,16 +48,26 @@ public class ProfileActivity extends AppCompatActivity {
     private TextView tvTrendHint;
     private LinearLayout calendarContainer;
     private LinearLayout moodDistContainer;
-    private LinearLayout containerHappy;
-    private LinearLayout containerSad;
     private View trendOverlay;
     private MoodTrendView moodTrendView;
+    private View attributionSection;
+    private TextView tvUserId;
+    private TextView tvStatsEmpty;
 
     private final TextView[] periodTabs = new TextView[3];
+    private final List<MoodResponse> allMoods = new ArrayList<>();
+    private boolean moodDataLoaded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (!SessionManager.isLoggedIn(this)) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_profile);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -59,7 +80,14 @@ public class ProfileActivity extends AppCompatActivity {
         setupPeriodTabs();
         setupTimeNavigator();
         setupBottomNav();
-        refreshAll();
+        setupLogout();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshUserInfo();
+        loadMoodList();
     }
 
     private void bindViews() {
@@ -75,22 +103,43 @@ public class ProfileActivity extends AppCompatActivity {
         tvTrendHint = findViewById(R.id.tv_trend_hint);
         calendarContainer = findViewById(R.id.calendar_container);
         moodDistContainer = findViewById(R.id.mood_dist_container);
-        containerHappy = findViewById(R.id.container_happy);
-        containerSad = findViewById(R.id.container_sad);
         trendOverlay = findViewById(R.id.trend_overlay);
         moodTrendView = findViewById(R.id.mood_trend_view);
+        attributionSection = findViewById(R.id.attribution_section);
+        tvUserId = findViewById(R.id.tv_user_id);
+        tvStatsEmpty = findViewById(R.id.tv_stats_empty);
 
-        TextView tvUserId = findViewById(R.id.tv_user_id);
-        tvUserId.setText(R.string.profile_user_id);
+        if (attributionSection != null) {
+            attributionSection.setVisibility(View.GONE);
+        }
+    }
+
+    private void refreshUserInfo() {
+        String username = SessionManager.getUsername(this);
+        if (username != null && !username.isEmpty()) {
+            tvUserId.setText(username);
+        } else {
+            tvUserId.setText(R.string.profile_user_id);
+        }
+    }
+
+    private void setupLogout() {
+        findViewById(R.id.btn_logout).setOnClickListener(v -> {
+            SessionManager.clear(this);
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        });
     }
 
     private void setupPeriodTabs() {
-        tabWeek.setOnClickListener(v -> switchPeriod(PERIOD_WEEK));
-        tabMonth.setOnClickListener(v -> switchPeriod(PERIOD_MONTH));
-        tabYear.setOnClickListener(v -> switchPeriod(PERIOD_YEAR));
+        tabWeek.setOnClickListener(v -> switchPeriod(MoodStatsHelper.PERIOD_WEEK));
+        tabMonth.setOnClickListener(v -> switchPeriod(MoodStatsHelper.PERIOD_MONTH));
+        tabYear.setOnClickListener(v -> switchPeriod(MoodStatsHelper.PERIOD_YEAR));
 
         findViewById(R.id.btn_view_all).setOnClickListener(v ->
-                showToast(getString(R.string.profile_toast_view_all)));
+                startActivity(new Intent(this, FootprintActivity.class)));
 
         findViewById(R.id.btn_go_record).setOnClickListener(v ->
                 startActivity(new Intent(this, RecordMoodActivity.class)));
@@ -121,23 +170,82 @@ public class ProfileActivity extends AppCompatActivity {
     private void switchPeriod(int period) {
         currentPeriod = period;
         timeOffset = 0;
-        String label = period == PERIOD_WEEK
+        String label = period == MoodStatsHelper.PERIOD_WEEK
                 ? getString(R.string.profile_period_week)
-                : period == PERIOD_MONTH
+                : period == MoodStatsHelper.PERIOD_MONTH
                 ? getString(R.string.profile_period_month)
                 : getString(R.string.profile_period_year);
         showToast(getString(R.string.profile_toast_switch, label));
         refreshAll();
     }
 
+    private void loadMoodList() {
+        long userId = SessionManager.getUserId(this);
+        if (userId <= 0) {
+            return;
+        }
+
+        showLoading();
+        RetrofitClient.getInstance().getApiService()
+                .getMoodList(userId, null)
+                .enqueue(new Callback<ApiResponse<List<MoodResponse>>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<List<MoodResponse>>> call,
+                                           Response<ApiResponse<List<MoodResponse>>> response) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
+                            return;
+                        }
+                        moodDataLoaded = true;
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().getCode() == 200) {
+                            allMoods.clear();
+                            List<MoodResponse> data = response.body().getData();
+                            if (data != null) {
+                                allMoods.addAll(data);
+                            }
+                            refreshAll();
+                        } else {
+                            ToastHelper.show(ProfileActivity.this, "拉取统计数据失败，请检查网络");
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<List<MoodResponse>>> call, Throwable t) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
+                            return;
+                        }
+                        moodDataLoaded = true;
+                        showNetworkError(t);
+                    }
+                });
+    }
+
     private void refreshAll() {
         updatePeriodTabStyle();
         updateTimeRangeText();
         updateCalendarTitle();
+        updateEmptyState();
         buildCalendar();
         buildMoodDistribution();
         updateTrendSection();
-        buildAttributionChips();
+    }
+
+    private void updateEmptyState() {
+        if (tvStatsEmpty == null) {
+            return;
+        }
+        if (!moodDataLoaded) {
+            tvStatsEmpty.setVisibility(View.GONE);
+            return;
+        }
+        List<MoodResponse> periodMoods = getCurrentPeriodMoods();
+        tvStatsEmpty.setVisibility(periodMoods.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    private List<MoodResponse> getCurrentPeriodMoods() {
+        return MoodStatsHelper.filterByPeriod(allMoods, currentPeriod, timeOffset);
     }
 
     private void updatePeriodTabStyle() {
@@ -153,10 +261,10 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void updateTimeRangeText() {
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.WEEK_OF_YEAR, timeOffset);
+        Calendar cal = MoodStatsHelper.getPeriodAnchorCalendar(currentPeriod, timeOffset);
 
-        if (currentPeriod == PERIOD_WEEK) {
+        if (currentPeriod == MoodStatsHelper.PERIOD_WEEK) {
+            cal.setFirstDayOfWeek(Calendar.MONDAY);
             cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
             int startMonth = cal.get(Calendar.MONTH) + 1;
             int startDay = cal.get(Calendar.DAY_OF_MONTH);
@@ -168,21 +276,19 @@ public class ProfileActivity extends AppCompatActivity {
             tvTimeRange.setText(String.format(Locale.CHINA,
                     "%d.%02d.%02d - %d.%02d.%02d",
                     startYear, startMonth, startDay, endYear, endMonth, endDay));
-        } else if (currentPeriod == PERIOD_MONTH) {
-            cal.add(Calendar.MONTH, timeOffset);
+        } else if (currentPeriod == MoodStatsHelper.PERIOD_MONTH) {
             int year = cal.get(Calendar.YEAR);
             int month = cal.get(Calendar.MONTH) + 1;
             tvTimeRange.setText(String.format(Locale.CHINA, "%d年%d月", year, month));
         } else {
-            cal.add(Calendar.YEAR, timeOffset);
             tvTimeRange.setText(String.format(Locale.CHINA, "%d年", cal.get(Calendar.YEAR)));
         }
     }
 
     private void updateCalendarTitle() {
-        int titleRes = currentPeriod == PERIOD_WEEK
+        int titleRes = currentPeriod == MoodStatsHelper.PERIOD_WEEK
                 ? R.string.profile_calendar_week
-                : currentPeriod == PERIOD_MONTH
+                : currentPeriod == MoodStatsHelper.PERIOD_MONTH
                 ? R.string.profile_calendar_month
                 : R.string.profile_calendar_year;
         tvCalendarTitle.setText(titleRes);
@@ -191,59 +297,32 @@ public class ProfileActivity extends AppCompatActivity {
     private void buildCalendar() {
         calendarContainer.removeAllViews();
         calendarContainer.setOrientation(
-                currentPeriod == PERIOD_MONTH || currentPeriod == PERIOD_YEAR
+                currentPeriod == MoodStatsHelper.PERIOD_MONTH
+                        || currentPeriod == MoodStatsHelper.PERIOD_YEAR
                         ? LinearLayout.VERTICAL
                         : LinearLayout.HORIZONTAL
         );
 
-        if (currentPeriod == PERIOD_YEAR) {
+        if (currentPeriod == MoodStatsHelper.PERIOD_YEAR) {
             buildYearCalendar();
-        } else if (currentPeriod == PERIOD_MONTH) {
+        } else if (currentPeriod == MoodStatsHelper.PERIOD_MONTH) {
             buildMonthCalendar();
         } else {
             buildWeekCalendar();
         }
     }
 
-    private boolean[] getWeekRecordedFlags() {
-        return new boolean[]{true, true, false, false, false, false, false};
-    }
-
-    private int countWeekRecordedDays() {
-        int count = 0;
-        for (boolean recorded : getWeekRecordedFlags()) {
-            if (recorded) {
-                count++;
-            }
-        }
-        return count;
-    }
-
     private void buildWeekCalendar() {
         String[] weekdays = {"一", "二", "三", "四", "五", "六", "日"};
-        int[] days = {8, 9, 10, 11, 12, 13, 14};
-        int todayIndex = 2;
+        Calendar weekAnchor = MoodStatsHelper.getPeriodAnchorCalendar(
+                MoodStatsHelper.PERIOD_WEEK, timeOffset);
+        LocalDate weekStart = MoodDateUtils.getWeekStartLocalDate(weekAnchor);
+        Map<String, List<MoodResponse>> dayMap = MoodDateUtils.groupByDay(getCurrentPeriodMoods());
 
-        boolean[] recordedFlags = getWeekRecordedFlags();
         for (int i = 0; i < 7; i++) {
-            View dayView = inflateCalendarDay(weekdays[i], String.valueOf(days[i]));
-            MoodRingView ring = dayView.findViewById(R.id.mood_ring);
-            ring.setStrokeWidthDp(3f);
-
-            if (i == todayIndex) {
-                ring.setSegments(
-                        new int[]{getColor(R.color.mood_good), getColor(R.color.mood_normal)},
-                        new float[]{0.5f, 0.5f}
-                );
-            } else if (recordedFlags[i]) {
-                int color = i % 2 == 0
-                        ? getColor(R.color.mood_good)
-                        : getColor(R.color.mood_normal);
-                ring.setSegments(new int[]{color}, new float[]{1f});
-            } else {
-                ring.setSegments(null, null);
-            }
-
+            LocalDate day = weekStart.plusDays(i);
+            View dayView = inflateCalendarDay(weekdays[i], String.valueOf(day.getDayOfMonth()));
+            applyRatioRing(dayView, dayMap.get(MoodDateUtils.dayKey(day)), 3f);
             calendarContainer.addView(dayView);
         }
     }
@@ -266,44 +345,39 @@ public class ProfileActivity extends AppCompatActivity {
         }
         calendarContainer.addView(header);
 
-        int[][] monthData = {
-                {0, 0, 0, 1, 2, 3, 4},
-                {5, 6, 7, 8, 9, 10, 11},
-                {12, 13, 14, 15, 16, 17, 18},
-                {19, 20, 21, 22, 23, 24, 25},
-                {26, 27, 28, 29, 30, 0, 0}
-        };
-        int today = 10;
+        Calendar monthAnchor = MoodStatsHelper.getPeriodAnchorCalendar(
+                MoodStatsHelper.PERIOD_MONTH, timeOffset);
+        int year = monthAnchor.get(Calendar.YEAR);
+        int month = monthAnchor.get(Calendar.MONTH);
+        int daysInMonth = MoodDateUtils.getDaysInMonth(monthAnchor);
 
-        for (int[] week : monthData) {
+        Calendar cursor = (Calendar) monthAnchor.clone();
+        cursor.set(Calendar.DAY_OF_MONTH, 1);
+        int leadingEmpty = MoodDateUtils.getMondayBasedColumnIndex(cursor);
+
+        Map<String, List<MoodResponse>> dayMap = MoodDateUtils.groupByDay(getCurrentPeriodMoods());
+
+        int day = 1;
+        while (day <= daysInMonth) {
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setLayoutParams(new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT));
-            for (int day : week) {
-                if (day == 0) {
+
+            for (int col = 0; col < 7; col++) {
+                if ((day == 1 && col < leadingEmpty) || day > daysInMonth) {
                     View spacer = new View(this);
                     spacer.setLayoutParams(new LinearLayout.LayoutParams(0, 1, 1f));
                     row.addView(spacer);
                 } else {
+                    LocalDate date = LocalDate.of(year, month + 1, day);
                     View dayView = inflateCalendarDay("", String.valueOf(day));
-                    MoodRingView ring = dayView.findViewById(R.id.mood_ring);
-                    ring.setStrokeWidthDp(2.5f);
+                    applyRatioRing(dayView, dayMap.get(MoodDateUtils.dayKey(date)), 2.5f);
                     TextView tvWeekday = dayView.findViewById(R.id.tv_weekday);
                     tvWeekday.setVisibility(View.GONE);
-
-                    if (day == today) {
-                        ring.setSegments(
-                                new int[]{getColor(R.color.mood_good), getColor(R.color.mood_normal)},
-                                new float[]{0.5f, 0.5f}
-                        );
-                    } else if (day % 3 == 0) {
-                        ring.setSegments(new int[]{getColor(R.color.mood_good)}, new float[]{1f});
-                    } else if (day % 3 == 1) {
-                        ring.setSegments(new int[]{getColor(R.color.mood_normal)}, new float[]{1f});
-                    }
                     row.addView(dayView);
+                    day++;
                 }
             }
             calendarContainer.addView(row);
@@ -313,6 +387,10 @@ public class ProfileActivity extends AppCompatActivity {
     private void buildYearCalendar() {
         String[] months = {"1月", "2月", "3月", "4月", "5月", "6月",
                 "7月", "8月", "9月", "10月", "11月", "12月"};
+        Calendar yearAnchor = MoodStatsHelper.getPeriodAnchorCalendar(
+                MoodStatsHelper.PERIOD_YEAR, timeOffset);
+        int year = yearAnchor.get(Calendar.YEAR);
+        Map<String, List<MoodResponse>> monthMap = MoodDateUtils.groupByMonth(getCurrentPeriodMoods());
 
         for (int row = 0; row < 2; row++) {
             LinearLayout monthRow = new LinearLayout(this);
@@ -323,26 +401,19 @@ public class ProfileActivity extends AppCompatActivity {
 
             for (int col = 0; col < 6; col++) {
                 int index = row * 6 + col;
+                String monthKey = String.format(Locale.CHINA, "%d-%02d", year, index + 1);
                 View dayView = inflateCalendarDay(months[index], String.valueOf(index + 1));
-                MoodRingView ring = dayView.findViewById(R.id.mood_ring);
-                ring.setStrokeWidthDp(3f);
-
-                if (index == 5) {
-                    ring.setSegments(
-                            new int[]{
-                                    getColor(R.color.mood_normal),
-                                    getColor(R.color.mood_good)
-                            },
-                            new float[]{0.75f, 0.25f}
-                    );
-                } else {
-                    ring.setSegments(null, null);
-                }
-
+                applyRatioRing(dayView, monthMap.get(monthKey), 3f);
                 monthRow.addView(dayView);
             }
             calendarContainer.addView(monthRow);
         }
+    }
+
+    private void applyRatioRing(View dayView, List<MoodResponse> bucketMoods, float strokeDp) {
+        MoodRatioRingView ring = dayView.findViewById(R.id.mood_ring);
+        ring.setStrokeWidthDp(strokeDp);
+        ring.setScoreRatios(MoodStatsHelper.buildScoreRatioMap(bucketMoods));
     }
 
     private View inflateCalendarDay(String weekday, String day) {
@@ -362,25 +433,8 @@ public class ProfileActivity extends AppCompatActivity {
     private void buildMoodDistribution() {
         moodDistContainer.removeAllViews();
 
-        String[] labels = {
-                getString(R.string.record_mood_very_good),
-                getString(R.string.record_mood_good),
-                getString(R.string.record_mood_normal),
-                getString(R.string.record_mood_bad),
-                getString(R.string.record_mood_very_bad)
-        };
-        int[] colors = {
-                R.color.mood_very_good,
-                R.color.mood_good,
-                R.color.mood_normal,
-                R.color.mood_bad,
-                R.color.mood_very_bad
-        };
-        int[] percents = currentPeriod == PERIOD_YEAR
-                ? new int[]{15, 30, 28, 17, 10}
-                : currentPeriod == PERIOD_MONTH
-                ? new int[]{18, 32, 26, 14, 10}
-                : new int[]{20, 35, 25, 12, 8};
+        String[] labels = MoodColorConstants.getEmotionLabels();
+        int[] percents = MoodStatsHelper.calculateDistributionPercents(getCurrentPeriodMoods());
 
         for (int i = 0; i < labels.length; i++) {
             View row = LayoutInflater.from(this).inflate(R.layout.item_mood_dist_row, moodDistContainer, false);
@@ -388,9 +442,12 @@ public class ProfileActivity extends AppCompatActivity {
             ProgressBar progressBar = row.findViewById(R.id.progress_mood);
             TextView tvPercent = row.findViewById(R.id.tv_mood_percent);
 
+            int score = MoodColorConstants.scoreForDistributionIndex(i);
+            int color = MoodColorConstants.getColorIntForScore(score);
+
             tvLabel.setText(labels[i]);
             progressBar.setProgress(percents[i]);
-            progressBar.setProgressTintList(ColorStateList.valueOf(getColor(colors[i])));
+            progressBar.setProgressTintList(ColorStateList.valueOf(color));
             tvPercent.setText(percents[i] + "%");
 
             moodDistContainer.addView(row);
@@ -398,10 +455,17 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void updateTrendSection() {
-        applyMoodScaleColors();
+        int[] scaleColors = MoodColorConstants.getColorInts();
+        moodTrendView.setMoodScaleColors(scaleColors);
 
-        if (currentPeriod == PERIOD_WEEK) {
-            int recordedDays = countWeekRecordedDays();
+        List<MoodResponse> periodMoods = getCurrentPeriodMoods();
+
+        if (currentPeriod == MoodStatsHelper.PERIOD_WEEK) {
+            Calendar weekAnchor = MoodStatsHelper.getPeriodAnchorCalendar(
+                    MoodStatsHelper.PERIOD_WEEK, timeOffset);
+            LocalDate weekStart = MoodDateUtils.getWeekStartLocalDate(weekAnchor);
+            int recordedDays = MoodStatsHelper.countRecordedDaysInWeek(periodMoods);
+
             if (recordedDays < 3) {
                 trendOverlay.setVisibility(View.VISIBLE);
                 findViewById(R.id.btn_go_record).setVisibility(View.VISIBLE);
@@ -410,60 +474,33 @@ public class ProfileActivity extends AppCompatActivity {
             } else {
                 trendOverlay.setVisibility(View.GONE);
                 moodTrendView.setVisibility(View.VISIBLE);
-                moodTrendView.setData(
-                        new float[]{3.2f, 3.8f, 4.1f, 3.5f, 4.0f, 4.3f, 4.5f},
-                        new String[]{"一", "二", "三", "四", "五", "六", "日"}
-                );
+                float[] points = MoodStatsHelper.buildWeekTrendPoints(periodMoods, weekStart);
+                moodTrendView.setData(points, new String[]{"一", "二", "三", "四", "五", "六", "日"});
             }
-        } else if (currentPeriod == PERIOD_MONTH) {
+        } else if (currentPeriod == MoodStatsHelper.PERIOD_MONTH) {
+            Calendar monthAnchor = MoodStatsHelper.getPeriodAnchorCalendar(
+                    MoodStatsHelper.PERIOD_MONTH, timeOffset);
+            int year = monthAnchor.get(Calendar.YEAR);
+            int month = monthAnchor.get(Calendar.MONTH) + 1;
+            int daysInMonth = MoodDateUtils.getDaysInMonth(monthAnchor);
+
             trendOverlay.setVisibility(View.GONE);
             moodTrendView.setVisibility(View.VISIBLE);
-            float[] monthPoints = buildMonthTrendPoints(30);
-            moodTrendView.setDataWithSparseDays(monthPoints, new int[]{1, 5, 10, 15, 20, 25, 30});
+            float[] monthPoints = MoodStatsHelper.buildMonthTrendPoints(
+                    periodMoods, year, month, daysInMonth);
+            moodTrendView.setDataWithSparseDays(monthPoints,
+                    new int[]{1, 5, 10, 15, 20, 25, daysInMonth});
         } else {
+            Calendar yearAnchor = MoodStatsHelper.getPeriodAnchorCalendar(
+                    MoodStatsHelper.PERIOD_YEAR, timeOffset);
+            int year = yearAnchor.get(Calendar.YEAR);
+
             trendOverlay.setVisibility(View.GONE);
             moodTrendView.setVisibility(View.VISIBLE);
-            moodTrendView.setData(
-                    new float[]{3.5f, 3.8f, 4.0f, 3.6f, 4.2f, 4.5f, 4.1f, 3.9f, 4.3f, 4.6f, 4.4f, 4.7f},
-                    new String[]{"1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"}
-            );
-        }
-    }
-
-    private void applyMoodScaleColors() {
-        moodTrendView.setMoodScaleColors(new int[]{
-                getColor(R.color.mood_very_good),
-                getColor(R.color.mood_good),
-                getColor(R.color.mood_normal),
-                getColor(R.color.mood_bad),
-                getColor(R.color.mood_very_bad)
-        });
-    }
-
-    private float[] buildMonthTrendPoints(int days) {
-        float[] points = new float[days];
-        for (int i = 0; i < days; i++) {
-            points[i] = 3.0f + (float) (Math.sin(i * 0.35) * 0.8 + Math.cos(i * 0.15) * 0.4);
-        }
-        return points;
-    }
-
-    private void buildAttributionChips() {
-        fillChipRow(containerHappy, new String[]{"家人", "天气", "食物", "运动"});
-        fillChipRow(containerSad, new String[]{"工作", "学习"});
-    }
-
-    private void fillChipRow(LinearLayout container, String[] labels) {
-        container.removeAllViews();
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        container.addView(row);
-
-        for (String label : labels) {
-            View chip = LayoutInflater.from(this).inflate(R.layout.item_attribution_chip, row, false);
-            TextView tvLabel = chip.findViewById(R.id.tv_chip_label);
-            tvLabel.setText(label);
-            row.addView(chip);
+            float[] yearPoints = MoodStatsHelper.buildYearTrendPoints(periodMoods, year);
+            moodTrendView.setData(yearPoints,
+                    new String[]{"1月", "2月", "3月", "4月", "5月", "6月",
+                            "7月", "8月", "9月", "10月", "11月", "12月"});
         }
     }
 

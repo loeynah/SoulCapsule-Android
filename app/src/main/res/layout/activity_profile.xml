@@ -160,6 +160,17 @@
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
+                <TextView
+                    android:id="@+id/tv_stats_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="@string/profile_stats_empty"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
                 <LinearLayout
                     android:id="@+id/calendar_container"
                     android:layout_width="match_parent"
@@ -273,6 +284,7 @@
 
             <!-- 情绪归因 -->
             <LinearLayout
+                android:id="@+id/attribution_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
@@ -317,6 +329,18 @@
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
+
+    <TextView
+        android:id="@+id/btn_logout"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/shape_button_small"
+        android:gravity="center"
+        android:text="@string/profile_logout"
+        android:textColor="@color/white"
+        android:textSize="14sp" />
 
     <!-- 底部导航 -->
     <LinearLayout

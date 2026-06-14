@@ -9,23 +9,37 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.finalwork.soulcapsule.dto.ApiResponse;
+import com.finalwork.soulcapsule.network.RetrofitClient;
+import com.finalwork.soulcapsule.util.SessionManager;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class MainActivity extends BaseActivity {
+
+    private static final List<String> FALLBACK_TIPS = Arrays.asList(
+            "去吹吹晚风吧",
+            "喝一杯热牛奶"
+    );
 
     private TextView tvGreeting;
     private TextView btnRecord;
     private TextView btnStartChat;
     private RecyclerView rvCapsules;
+    private CapsuleAdapter capsuleAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +61,12 @@ public class MainActivity extends AppCompatActivity {
         setupClickListeners();
         setupBottomNav();
         setupCapsuleList();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadDecompressionTips();
     }
 
     private void updateGreeting() {
@@ -81,18 +101,50 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupCapsuleList() {
-        List<String> capsuleData = Arrays.asList(
-                "周末带上相机去街头散步，拍几组充满胶片感的摄影作品。",
-                "花一个下午沉浸在手工拼装的世界里。"
-        );
-
         rvCapsules.setLayoutManager(
                 new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        rvCapsules.setAdapter(new CapsuleAdapter(capsuleData));
+        capsuleAdapter = new CapsuleAdapter(new ArrayList<>());
+        rvCapsules.setAdapter(capsuleAdapter);
     }
 
-    private void showToast(String message) {
-        ToastHelper.show(this, message);
+    private void loadDecompressionTips() {
+        long userId = SessionManager.getUserId(this);
+        if (userId <= 0) {
+            capsuleAdapter.updateItems(new ArrayList<>(FALLBACK_TIPS));
+            return;
+        }
+
+        showLoading();
+        RetrofitClient.getInstance().getApiService()
+                .getDecompressionTips(userId)
+                .enqueue(new Callback<ApiResponse<List<String>>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<List<String>>> call,
+                                           Response<ApiResponse<List<String>>> response) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
+                            return;
+                        }
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().getCode() == 200
+                                && response.body().getData() != null
+                                && !response.body().getData().isEmpty()) {
+                            capsuleAdapter.updateItems(response.body().getData());
+                        } else {
+                            capsuleAdapter.updateItems(new ArrayList<>(FALLBACK_TIPS));
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<List<String>>> call, Throwable t) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
+                            return;
+                        }
+                        capsuleAdapter.updateItems(new ArrayList<>(FALLBACK_TIPS));
+                        showNetworkError(t);
+                    }
+                });
     }
 
     private static class CapsuleAdapter extends RecyclerView.Adapter<CapsuleAdapter.CapsuleViewHolder> {
@@ -100,7 +152,15 @@ public class MainActivity extends AppCompatActivity {
         private final List<String> items;
 
         CapsuleAdapter(List<String> items) {
-            this.items = items;
+            this.items = new ArrayList<>(items);
+        }
+
+        void updateItems(List<String> newItems) {
+            items.clear();
+            if (newItems != null) {
+                items.addAll(newItems);
+            }
+            notifyDataSetChanged();
         }
 
         @NonNull

@@ -73,13 +73,15 @@
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:background="@color/bg_warm_white">
 
         <!-- 步骤 1：心情打分 -->
         <LinearLayout
             android:id="@+id/step1_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="@color/bg_warm_white"
             android:orientation="vertical"
             android:paddingHorizontal="24dp"
             android:visibility="visible">
@@ -208,6 +210,7 @@
             android:id="@+id/step2_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="@color/bg_warm_white"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:visibility="gone">
@@ -230,6 +233,7 @@
                 android:layout_height="0dp"
                 android:layout_marginTop="16dp"
                 android:layout_weight="1"
+                android:background="@color/bg_warm_white"
                 android:clipToPadding="false"
                 android:overScrollMode="never"
                 android:paddingBottom="8dp"
@@ -259,6 +263,7 @@
             android:id="@+id/step3_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="@color/bg_warm_white"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:visibility="gone">
@@ -296,6 +301,7 @@
                 android:layout_height="0dp"
                 android:layout_marginTop="12dp"
                 android:layout_weight="1"
+                android:background="@color/bg_warm_white"
                 android:clipToPadding="false"
                 android:overScrollMode="never"
                 android:paddingBottom="8dp"
@@ -336,6 +342,7 @@
             android:id="@+id/step4_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:background="@color/bg_warm_white"
             android:paddingHorizontal="24dp"
             android:visibility="gone">
 
@@ -378,12 +385,14 @@
                 android:layout_below="@id/step4_header"
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="16dp"
-                android:background="@null"
+                android:background="@color/bg_warm_white"
                 android:gravity="top|start"
                 android:hint="@string/record_hint_detail"
                 android:importantForAutofill="no"
-                android:inputType="textMultiLine"
+                android:imeOptions="actionDone|flagNoEnterAction"
+                android:inputType="text|textMultiLine|textCapSentences"
                 android:lineSpacingExtra="6dp"
+                android:scrollbars="vertical"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:textSize="16sp" />
@@ -396,10 +405,22 @@
                 android:layout_marginBottom="24dp">
 
                 <ImageView
+                    android:id="@+id/iv_upload_preview"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:layout_alignParentStart="true"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/shape_footprint_image"
+                    android:contentDescription="@string/detail_image_desc"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <ImageView
                     android:id="@+id/btn_gallery"
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:layout_alignParentStart="true"
+                    android:layout_below="@id/iv_upload_preview"
                     android:background="@drawable/shape_gallery_btn"
                     android:contentDescription="@string/record_toast_gallery"
                     android:elevation="4dp"

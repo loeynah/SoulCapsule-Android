@@ -181,9 +181,11 @@
                 android:gravity="top|start"
                 android:hint="@string/record_hint_detail"
                 android:importantForAutofill="no"
-                android:inputType="textMultiLine"
+                android:imeOptions="actionDone|flagNoEnterAction"
+                android:inputType="text|textMultiLine|textCapSentences"
                 android:lineSpacingExtra="4dp"
                 android:padding="16dp"
+                android:scrollbars="vertical"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:textSize="14sp" />

@@ -1,9 +1,12 @@
 package com.finalwork.soulcapsule;
 
 import android.app.AlertDialog;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.SpannableString;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.style.BackgroundColorSpan;
 import android.view.LayoutInflater;
@@ -17,14 +20,26 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.finalwork.soulcapsule.dto.ApiResponse;
+import com.finalwork.soulcapsule.dto.MoodRequest;
+import com.finalwork.soulcapsule.network.RetrofitClient;
+import com.finalwork.soulcapsule.util.ImageLoaderHelper;
+import com.finalwork.soulcapsule.util.SessionManager;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -33,7 +48,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-public class RecordMoodActivity extends AppCompatActivity {
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class RecordMoodActivity extends BaseActivity {
 
     private static final int TOTAL_STEPS = 4;
 
@@ -59,6 +81,11 @@ public class RecordMoodActivity extends AppCompatActivity {
     private RecyclerView rvEmotions;
     private EditText etSearchEmotion;
     private EditText etDetail;
+    private ImageView ivUploadPreview;
+
+    private String pendingImageUrl;
+    private boolean isUploadingImage;
+    private ActivityResultLauncher<PickVisualMediaRequest> pickImageLauncher;
 
     private AttributionAdapter attributionAdapter;
     private EmotionAdapter emotionAdapter;
@@ -75,6 +102,7 @@ public class RecordMoodActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
+        getWindow().setBackgroundDrawableResource(R.color.bg_warm_white);
         setContentView(R.layout.activity_record_mood);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -84,6 +112,7 @@ public class RecordMoodActivity extends AppCompatActivity {
 
         initData();
         bindViews();
+        registerPickImageLauncher();
         setupHeader();
         setupStep1();
         setupStep2();
@@ -151,6 +180,17 @@ public class RecordMoodActivity extends AppCompatActivity {
         rvEmotions = findViewById(R.id.rv_emotions);
         etSearchEmotion = findViewById(R.id.et_search_emotion);
         etDetail = findViewById(R.id.et_detail);
+        ivUploadPreview = findViewById(R.id.iv_upload_preview);
+    }
+
+    private void registerPickImageLauncher() {
+        pickImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.PickVisualMedia(),
+                uri -> {
+                    if (uri != null) {
+                        uploadImageFromUri(uri);
+                    }
+                });
     }
 
     private void setupHeader() {
@@ -208,13 +248,196 @@ public class RecordMoodActivity extends AppCompatActivity {
     }
 
     private void setupStep4() {
-        findViewById(R.id.btn_gallery).setOnClickListener(v ->
-                showToast(getString(R.string.record_toast_gallery)));
+        etDetail.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
 
-        findViewById(R.id.btn_save).setOnClickListener(v -> {
-            showToast(getString(R.string.record_toast_saved));
-            finish();
-        });
+        findViewById(R.id.btn_gallery).setOnClickListener(v -> openImagePicker());
+        findViewById(R.id.btn_save).setOnClickListener(v -> saveMoodRecord());
+    }
+
+    private void openImagePicker() {
+        if (isUploadingImage) {
+            showToast(getString(R.string.record_uploading));
+            return;
+        }
+        pickImageLauncher.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                .build());
+    }
+
+    private void uploadImageFromUri(Uri uri) {
+        isUploadingImage = true;
+        pendingImageUrl = null;
+        showLoading();
+        ivUploadPreview.setVisibility(View.VISIBLE);
+        ImageLoaderHelper.loadLocal(this, ivUploadPreview, uri, 8);
+
+        File tempFile = null;
+        try {
+            tempFile = copyUriToTempFile(uri);
+            String mimeType = getContentResolver().getType(uri);
+            if (TextUtils.isEmpty(mimeType)) {
+                mimeType = "image/jpeg";
+            }
+            RequestBody requestBody = RequestBody.create(tempFile, MediaType.parse(mimeType));
+            MultipartBody.Part part = MultipartBody.Part.createFormData(
+                    "file", tempFile.getName(), requestBody);
+            File finalTempFile = tempFile;
+            RetrofitClient.getInstance().getApiService()
+                    .uploadImage(part)
+                    .enqueue(new Callback<ApiResponse<String>>() {
+                        @Override
+                        public void onResponse(Call<ApiResponse<String>> call,
+                                               Response<ApiResponse<String>> response) {
+                            isUploadingImage = false;
+                            hideLoading();
+                            deleteTempFile(finalTempFile);
+                            if (!isActivityAlive()) {
+                                return;
+                            }
+                            if (response.isSuccessful() && response.body() != null
+                                    && response.body().getCode() == 200
+                                    && !TextUtils.isEmpty(response.body().getData())) {
+                                pendingImageUrl = response.body().getData();
+                                ImageLoaderHelper.loadRemote(
+                                        RecordMoodActivity.this,
+                                        ivUploadPreview,
+                                        pendingImageUrl,
+                                        8);
+                                showToast(getString(R.string.record_upload_success));
+                            } else {
+                                pendingImageUrl = null;
+                                ivUploadPreview.setVisibility(View.GONE);
+                                String message = response.body() != null
+                                        && response.body().getMessage() != null
+                                        ? response.body().getMessage()
+                                        : getString(R.string.record_upload_failed);
+                                showToast(message);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                            isUploadingImage = false;
+                            hideLoading();
+                            deleteTempFile(finalTempFile);
+                            if (!isActivityAlive()) {
+                                return;
+                            }
+                            pendingImageUrl = null;
+                            ivUploadPreview.setVisibility(View.GONE);
+                            showNetworkError(t);
+                        }
+                    });
+        } catch (IOException e) {
+            isUploadingImage = false;
+            hideLoading();
+            deleteTempFile(tempFile);
+            pendingImageUrl = null;
+            ivUploadPreview.setVisibility(View.GONE);
+            showToast(getString(R.string.record_upload_failed));
+        }
+    }
+
+    private File copyUriToTempFile(Uri uri) throws IOException {
+        String mimeType = getContentResolver().getType(uri);
+        String extension = "jpg";
+        if (!TextUtils.isEmpty(mimeType) && mimeType.contains("/")) {
+            extension = mimeType.substring(mimeType.indexOf('/') + 1);
+            if ("jpeg".equals(extension)) {
+                extension = "jpg";
+            }
+        }
+        File tempFile = File.createTempFile("mood_upload_", "." + extension, getCacheDir());
+        try (InputStream inputStream = getContentResolver().openInputStream(uri);
+             FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+            if (inputStream == null) {
+                throw new IOException("无法读取图片");
+            }
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, read);
+            }
+        }
+        return tempFile;
+    }
+
+    private void deleteTempFile(File file) {
+        if (file != null && file.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            file.delete();
+        }
+    }
+
+    private String buildSelectedTags() {
+        List<String> tags = new ArrayList<>();
+        for (Integer pos : selectedAttributionPositions) {
+            if (pos >= 0 && pos < attributionLabels.size()) {
+                tags.add(attributionLabels.get(pos));
+            }
+        }
+        for (Integer pos : selectedEmotionPositions) {
+            if (pos >= 0 && pos < filteredEmotionLabels.size()) {
+                tags.add(filteredEmotionLabels.get(pos));
+            }
+        }
+        return TextUtils.join(",", tags);
+    }
+
+    private void saveMoodRecord() {
+        if (isUploadingImage) {
+            showToast(getString(R.string.record_uploading));
+            return;
+        }
+        String content = etDetail.getText().toString().trim();
+        if (content.isEmpty()) {
+            showToast("请先写下你的感受");
+            return;
+        }
+        if (selectedMoodIndex < 0 || selectedMoodText.isEmpty()) {
+            showToast(getString(R.string.record_toast_select_mood));
+            return;
+        }
+
+        long userId = SessionManager.getUserId(this);
+        if (userId <= 0) {
+            showToast("请先登录后再记录心情");
+            return;
+        }
+
+        MoodRequest request = new MoodRequest(userId, selectedMoodText, content, pendingImageUrl);
+        request.setTags(buildSelectedTags());
+        showLoading();
+        RetrofitClient.getInstance().getApiService()
+                .addMoodRecord(request)
+                .enqueue(new Callback<ApiResponse<Void>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<Void>> call,
+                                           Response<ApiResponse<Void>> response) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
+                            return;
+                        }
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().getCode() == 200) {
+                            showToast("心情已珍藏入胶囊！");
+                            finish();
+                        } else {
+                            showToast("网络连接失败，请检查后端状态");
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
+                            return;
+                        }
+                        showNetworkError(t);
+                    }
+                });
     }
 
     private void setupNavigation() {
@@ -277,6 +500,23 @@ public class RecordMoodActivity extends AppCompatActivity {
         step2Layout.setVisibility(step == 1 ? View.VISIBLE : View.GONE);
         step3Layout.setVisibility(step == 2 ? View.VISIBLE : View.GONE);
         step4Layout.setVisibility(step == 3 ? View.VISIBLE : View.GONE);
+
+        View activeStep;
+        switch (step) {
+            case 1:
+                activeStep = step2Layout;
+                break;
+            case 2:
+                activeStep = step3Layout;
+                break;
+            case 3:
+                activeStep = step4Layout;
+                break;
+            default:
+                activeStep = step1Layout;
+                break;
+        }
+        activeStep.bringToFront();
 
         updateProgressBar();
     }

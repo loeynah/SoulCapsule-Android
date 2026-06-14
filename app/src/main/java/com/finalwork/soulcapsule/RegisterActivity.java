@@ -2,19 +2,23 @@ package com.finalwork.soulcapsule;
 
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.finalwork.soulcapsule.db.UserRepository;
+import com.finalwork.soulcapsule.dto.ApiResponse;
+import com.finalwork.soulcapsule.dto.UserRequest;
+import com.finalwork.soulcapsule.network.RetrofitClient;
 
-public class RegisterActivity extends AppCompatActivity {
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
+public class RegisterActivity extends BaseActivity {
 
     private static final int MIN_USERNAME_LENGTH = 3;
     private static final int MIN_PASSWORD_LENGTH = 6;
@@ -23,8 +27,6 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText etPassword;
     private EditText etConfirmPassword;
     private Button btnRegister;
-
-    private UserRepository userRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,8 +38,6 @@ public class RegisterActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
-        userRepository = UserRepository.getInstance(this);
 
         etUsername = findViewById(R.id.et_username);
         etPassword = findViewById(R.id.et_password);
@@ -53,8 +53,13 @@ public class RegisterActivity extends AppCompatActivity {
         String password = etPassword.getText().toString();
         String confirmPassword = etConfirmPassword.getText().toString();
 
-        if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password) || TextUtils.isEmpty(confirmPassword)) {
+        if (TextUtils.isEmpty(username) || TextUtils.isEmpty(password)) {
             ToastHelper.show(this, getString(R.string.toast_empty_credentials));
+            return;
+        }
+
+        if (!password.equals(confirmPassword)) {
+            ToastHelper.show(this, getString(R.string.toast_password_mismatch));
             return;
         }
 
@@ -68,33 +73,43 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        if (!password.equals(confirmPassword)) {
-            ToastHelper.show(this, getString(R.string.toast_password_mismatch));
-            return;
-        }
-
         btnRegister.setEnabled(false);
-        userRepository.register(username, password, new UserRepository.AuthCallback() {
-            @Override
-            public void onSuccess() {
-                runOnUiThread(() -> {
-                    btnRegister.setEnabled(true);
-                    ToastHelper.show(RegisterActivity.this, getString(R.string.toast_register_success));
-                    finish();
-                });
-            }
+        showLoading();
 
-            @Override
-            public void onFailure(String message) {
-                runOnUiThread(() -> {
-                    btnRegister.setEnabled(true);
-                    if ("exists".equals(message)) {
-                        ToastHelper.show(RegisterActivity.this, getString(R.string.toast_username_exists));
-                    } else {
-                        ToastHelper.show(RegisterActivity.this, getString(R.string.toast_register_failed));
+        UserRequest request = new UserRequest(username, password);
+        RetrofitClient.getInstance().getApiService()
+                .register(request)
+                .enqueue(new Callback<ApiResponse<Void>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<Void>> call,
+                                           Response<ApiResponse<Void>> response) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
+                            return;
+                        }
+                        btnRegister.setEnabled(true);
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().getCode() == 200) {
+                            ToastHelper.show(RegisterActivity.this, "注册成功！");
+                            finish();
+                        } else {
+                            String message = response.body() != null
+                                    && response.body().getMessage() != null
+                                    ? response.body().getMessage()
+                                    : "网络异常，注册失败";
+                            ToastHelper.show(RegisterActivity.this, message);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
+                            return;
+                        }
+                        btnRegister.setEnabled(true);
+                        showNetworkError(t);
                     }
                 });
-            }
-        });
     }
 }

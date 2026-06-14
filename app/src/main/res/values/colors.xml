@@ -21,11 +21,12 @@
     <color name="detail_ai_section_bg">#F5F2E9</color>
     <color name="detail_chat_btn_bg">#EDE8DC</color>
 
-    <!-- 心情分布色 -->
-    <color name="mood_very_good">#F28B82</color>
-    <color name="mood_good">#F29C54</color>
-    <color name="mood_normal">#A8D8B9</color>
-    <color name="mood_bad">#8CB4E2</color>
-    <color name="mood_very_bad">#B49FDC</color>
+    <!-- 心情分布色：很好=红 | 好=橙 | 一般=绿 | 不好=蓝 | 很不好=紫 -->
+    <color name="mood_very_good">#FF5252</color>
+    <color name="mood_good">#FFAB40</color>
+    <color name="mood_normal">#66BB6A</color>
+    <color name="mood_bad">#42A5F5</color>
+    <color name="mood_very_bad">#AB47BC</color>
+    <color name="mood_ring_empty">#BDBDBD</color>
     <color name="period_tab_bg">#E8E4D8</color>
 </resources>

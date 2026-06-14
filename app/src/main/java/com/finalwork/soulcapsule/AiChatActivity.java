@@ -2,10 +2,8 @@ package com.finalwork.soulcapsule;
 
 import android.os.Bundle;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -14,6 +12,7 @@ import com.finalwork.soulcapsule.dto.ApiResponse;
 import com.finalwork.soulcapsule.dto.ChatRequest;
 import com.finalwork.soulcapsule.dto.ChatResponse;
 import com.finalwork.soulcapsule.network.RetrofitClient;
+import com.finalwork.soulcapsule.util.SessionManager;
 import com.stfalcon.chatkit.commons.ImageLoader;
 import com.stfalcon.chatkit.messages.MessageInput;
 import com.stfalcon.chatkit.messages.MessagesList;
@@ -25,7 +24,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class AiChatActivity extends AppCompatActivity {
+public class AiChatActivity extends BaseActivity {
 
     private static final String SENDER_ID = "0";
     private static final String AI_ID = "1";
@@ -79,14 +78,22 @@ public class AiChatActivity extends AppCompatActivity {
     }
 
     private void sendMessageToBackend(String text) {
-        ChatRequest request = new ChatRequest(text);
+        long userId = SessionManager.getUserId(this);
+        if (userId <= 0) {
+            ToastHelper.show(this, "请先登录后再与小旅聊天");
+            return;
+        }
+
+        showLoading();
+        ChatRequest request = new ChatRequest(userId, text);
         RetrofitClient.getInstance().getApiService()
                 .sendChatMessage(request)
                 .enqueue(new Callback<ApiResponse<ChatResponse>>() {
                     @Override
                     public void onResponse(Call<ApiResponse<ChatResponse>> call,
                                            Response<ApiResponse<ChatResponse>> response) {
-                        if (isFinishing()) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
                             return;
                         }
                         if (response.isSuccessful() && response.body() != null) {
@@ -102,27 +109,23 @@ public class AiChatActivity extends AppCompatActivity {
                                 );
                                 messagesAdapter.addToStart(aiMessage, true);
                             } else {
-                                Toast.makeText(AiChatActivity.this,
+                                ToastHelper.show(AiChatActivity.this,
                                         apiResponse.getMessage() != null
                                                 ? apiResponse.getMessage()
-                                                : "AI 回复失败",
-                                        Toast.LENGTH_SHORT).show();
+                                                : "AI 回复失败");
                             }
                         } else {
-                            Toast.makeText(AiChatActivity.this,
-                                    "网络连接失败，请检查后端状态",
-                                    Toast.LENGTH_SHORT).show();
+                            ToastHelper.show(AiChatActivity.this, "网络连接失败，请检查后端状态");
                         }
                     }
 
                     @Override
                     public void onFailure(Call<ApiResponse<ChatResponse>> call, Throwable t) {
-                        if (isFinishing()) {
+                        hideLoading();
+                        if (!isActivityAlive()) {
                             return;
                         }
-                        Toast.makeText(AiChatActivity.this,
-                                "网络连接失败，请检查后端状态",
-                                Toast.LENGTH_SHORT).show();
+                        showNetworkError(t);
                     }
                 });
     }

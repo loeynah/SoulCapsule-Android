@@ -65,10 +65,14 @@
     <string name="record_toast_select_mood">请先选择心情</string>
     <string name="record_toast_saved">心情记录已保存</string>
     <string name="record_toast_gallery">准备上传图片</string>
+    <string name="record_upload_success">图片上传成功</string>
+    <string name="record_upload_failed">图片上传失败，请重试</string>
+    <string name="record_uploading">正在上传图片…</string>
 
     <!-- 足迹 -->
     <string name="footprint_search_hint">搜索记录</string>
     <string name="footprint_filter">筛选</string>
+    <string name="footprint_empty">暂无心情记录</string>
     <string name="footprint_expand">展开</string>
 
     <!-- 修改记录 -->
@@ -85,10 +89,14 @@
     <string name="detail_label_because">因为</string>
     <string name="detail_label_feel">我感到</string>
     <string name="detail_mood_title_prefix">我的</string>
+    <string name="detail_image_desc">心情配图</string>
     <string name="detail_ai_name">小旅</string>
     <string name="detail_chat_more">多聊几句</string>
     <string name="detail_menu_edit">修改</string>
     <string name="detail_menu_delete">删除</string>
+    <string name="detail_delete_confirm_title">确认删除</string>
+    <string name="detail_delete_confirm_message">删除后将无法恢复，确定要删除这条心情记录吗？</string>
+    <string name="detail_delete_confirm_ok">删除</string>
     <string name="detail_toast_liked">感谢你的反馈</string>
     <string name="detail_toast_disliked">我们会继续改进</string>
     <string name="detail_toast_copied">已复制到剪贴板</string>
@@ -105,6 +113,8 @@
 
     <!-- 我的 -->
     <string name="profile_user_id">SoulCapsule 用户</string>
+    <string name="profile_logout">退出登录</string>
+    <string name="profile_stats_empty">当前时段暂无心情记录，快去记录一下吧</string>
     <string name="profile_period_week">周</string>
     <string name="profile_period_month">月</string>
     <string name="profile_period_year">年</string>

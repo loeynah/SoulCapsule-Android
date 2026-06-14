@@ -26,7 +26,8 @@
             android:exported="false" />
         <activity
             android:name=".RecordMoodActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".FootprintActivity"
             android:exported="false" />
@@ -35,7 +36,8 @@
             android:exported="false" />
         <activity
             android:name=".EditMoodActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ProfileActivity"
             android:exported="false" />

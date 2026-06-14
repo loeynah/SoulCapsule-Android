@@ -6,6 +6,8 @@ public class FootprintItem {
 
 
 
+    private final long moodId;
+
     private final String year;
 
     private final String dateMonthDay;
@@ -18,6 +20,8 @@ public class FootprintItem {
 
     private final String moodStatus;
 
+    private final int moodScore;
+
     private final boolean goodMood;
 
     private final String reason;
@@ -26,17 +30,19 @@ public class FootprintItem {
 
     private final String content;
 
-    private final boolean hasImage;
+    private final String imageUrl;
 
     private final String aiReply;
 
 
 
-    public FootprintItem(String year, String dateMonthDay, String weekDay, String time,
+    public FootprintItem(long moodId, String year, String dateMonthDay, String weekDay, String time,
 
-                         long timestamp, String moodStatus, boolean goodMood, String reason,
+                         long timestamp, String moodStatus, int moodScore, boolean goodMood, String reason,
 
-                         String feelings, String content, boolean hasImage, String aiReply) {
+                         String feelings, String content, String imageUrl, String aiReply) {
+
+        this.moodId = moodId;
 
         this.year = year;
 
@@ -50,6 +56,8 @@ public class FootprintItem {
 
         this.moodStatus = moodStatus;
 
+        this.moodScore = moodScore;
+
         this.goodMood = goodMood;
 
         this.reason = reason;
@@ -58,9 +66,17 @@ public class FootprintItem {
 
         this.content = content;
 
-        this.hasImage = hasImage;
+        this.imageUrl = imageUrl;
 
         this.aiReply = aiReply;
+
+    }
+
+
+
+    public long getMoodId() {
+
+        return moodId;
 
     }
 
@@ -114,6 +130,14 @@ public class FootprintItem {
 
 
 
+    public int getMoodScore() {
+
+        return moodScore;
+
+    }
+
+
+
     public boolean isGoodMood() {
 
         return goodMood;
@@ -146,9 +170,17 @@ public class FootprintItem {
 
 
 
+    public String getImageUrl() {
+
+        return imageUrl;
+
+    }
+
+
+
     public boolean hasImage() {
 
-        return hasImage;
+        return imageUrl != null && !imageUrl.isEmpty();
 
     }
 
@@ -177,4 +209,3 @@ public class FootprintItem {
     }
 
 }
-
