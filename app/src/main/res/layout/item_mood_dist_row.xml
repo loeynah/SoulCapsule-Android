@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingVertical="6dp">
+
+    <TextView
+        android:id="@+id/tv_mood_label"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_primary"
+        android:textSize="13sp"
+        tools:text="很好" />
+
+    <ProgressBar
+        android:id="@+id/progress_mood"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="8dp"
+        android:layout_marginHorizontal="8dp"
+        android:layout_weight="1"
+        android:max="100"
+        android:progressDrawable="@drawable/layer_mood_progress"
+        tools:progress="60" />
+
+    <TextView
+        android:id="@+id/tv_mood_percent"
+        android:layout_width="36dp"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        tools:text="30%" />
+
+</LinearLayout>

@@ -1,0 +1,134 @@
+<resources>
+    <string name="app_name">SoulCapsule</string>
+    <string name="login_title">SoulCapsule</string>
+    <string name="login_subtitle">欢迎来到你的专属情绪树洞</string>
+    <string name="hint_username">请输入账号</string>
+    <string name="hint_password">请输入密码</string>
+    <string name="btn_login">登 录</string>
+    <string name="register_hint">没有账号？点击注册</string>
+    <string name="register_title">创建账号</string>
+    <string name="register_subtitle">注册你的专属 SoulCapsule 账号</string>
+    <string name="hint_confirm_password">请再次输入密码</string>
+    <string name="btn_register">注 册</string>
+    <string name="register_back_login">已有账号？返回登录</string>
+    <string name="toast_empty_credentials">账号或密码不能为空</string>
+    <string name="toast_login_failed">账号或密码错误</string>
+    <string name="toast_login_success">登录成功</string>
+    <string name="toast_register_success">注册成功，请登录</string>
+    <string name="toast_register_failed">注册失败，请稍后重试</string>
+    <string name="toast_username_exists">该账号已被注册</string>
+    <string name="toast_password_mismatch">两次输入的密码不一致</string>
+    <string name="toast_username_too_short">账号至少需要 3 个字符</string>
+    <string name="toast_password_too_short">密码至少需要 6 个字符</string>
+
+    <!-- 主页 -->
+    <string name="greeting_default">Hi，今天过得怎么样？</string>
+    <string name="greeting_suffix">，今天过得怎么样？</string>
+    <string name="greeting_morning">早安</string>
+    <string name="greeting_noon">午安</string>
+    <string name="greeting_evening">晚安</string>
+    <string name="section_mood_station">心情驿站</string>
+    <string name="mood_record_title">心情记录</string>
+    <string name="mood_record_subtitle">观察情绪，会有别样收获</string>
+    <string name="btn_record">记录</string>
+    <string name="section_ai_companion">与智能旅伴聊聊</string>
+    <string name="ai_companion_title">随时随地与 AI 智能旅伴聊聊</string>
+    <string name="ai_companion_subtitle">倾诉 | 分享 | 探索自我</string>
+    <string name="btn_start_chat">开始聊天</string>
+    <string name="section_capsule">解压小锦囊</string>
+    <string name="capsule_signature">- AI 树洞</string>
+    <string name="nav_today">今日</string>
+    <string name="nav_footprint">足迹</string>
+    <string name="nav_mine">我的</string>
+    <string name="toast_go_mood_record">准备跳转到：心情记录页面</string>
+    <string name="toast_go_ai_chat">准备跳转到：AI 对话页面</string>
+
+    <!-- 心情记录 -->
+    <string name="record_step1_title">你的心情如何？</string>
+    <string name="record_step2_title_prefix">是什么让你觉得心情</string>
+    <string name="record_step2_title_suffix">？</string>
+    <string name="record_step3_title">你感受到了哪些情绪？</string>
+    <string name="record_step4_title">详细记录你的感受吧</string>
+    <string name="record_step4_subtitle">带来正能量的事物值得被记录！</string>
+    <string name="record_hint_detail">写下这一刻的想法…</string>
+    <string name="record_search_emotion">搜索情绪</string>
+    <string name="record_btn_skip">跳过</string>
+    <string name="record_btn_next">下一步</string>
+    <string name="record_mood_very_good">很好</string>
+    <string name="record_mood_good">好</string>
+    <string name="record_mood_normal">一般</string>
+    <string name="record_mood_bad">不好</string>
+    <string name="record_mood_very_bad">很不好</string>
+    <string name="record_custom_tag">自定义</string>
+    <string name="record_dialog_custom_title">添加自定义标签</string>
+    <string name="record_dialog_custom_hint">请输入标签名称</string>
+    <string name="record_toast_select_mood">请先选择心情</string>
+    <string name="record_toast_saved">心情记录已保存</string>
+    <string name="record_toast_gallery">准备上传图片</string>
+
+    <!-- 足迹 -->
+    <string name="footprint_search_hint">搜索记录</string>
+    <string name="footprint_filter">筛选</string>
+    <string name="footprint_expand">展开</string>
+
+    <!-- 修改记录 -->
+    <string name="edit_mood_title">修改记录</string>
+    <string name="edit_mood_cancel">取消</string>
+    <string name="edit_mood_done">完成</string>
+    <string name="edit_mood_label_mood">心情</string>
+    <string name="edit_mood_label_tags">原因 / 标签</string>
+    <string name="edit_mood_hint_tags">多个标签请用逗号分隔，如：工作,学习</string>
+    <string name="edit_mood_label_content">详细记录</string>
+    <string name="edit_mood_toast_success">修改成功</string>
+
+    <!-- 心情详情 -->
+    <string name="detail_label_because">因为</string>
+    <string name="detail_label_feel">我感到</string>
+    <string name="detail_mood_title_prefix">我的</string>
+    <string name="detail_ai_name">小旅</string>
+    <string name="detail_chat_more">多聊几句</string>
+    <string name="detail_menu_edit">修改</string>
+    <string name="detail_menu_delete">删除</string>
+    <string name="detail_toast_liked">感谢你的反馈</string>
+    <string name="detail_toast_disliked">我们会继续改进</string>
+    <string name="detail_toast_copied">已复制到剪贴板</string>
+    <string name="detail_toast_edit">准备跳转到：修改记录</string>
+    <string name="detail_toast_delete">记录已删除</string>
+    <string name="detail_toast_ai_view">查看 AI 回复</string>
+    <string name="detail_default_date">2026.6.10 周三</string>
+    <string name="detail_default_time">08:28</string>
+    <string name="detail_default_mood">心情好</string>
+    <string name="detail_default_reason">学习</string>
+    <string name="detail_default_feeling">压抑</string>
+    <string name="detail_default_content">今天完成了一个非常复杂的 3D 交互项目，还在寝室拼了一个可爱的模型，满满的成就感！</string>
+    <string name="detail_default_ai_reply">看见你在「学习」中感到「压抑」，我想先轻轻抱抱你。\n\n这种感受并不奇怪——当我们对一件事投入很多，却暂时看不到回报时，心里很容易积一层薄雾。你愿意把它写下来，说明你在认真觉察自己，这本身就很了不起。\n\n也许「压抑」里藏着一份期待：你希望自己可以做得更好。试着把目标拆小一点，每完成一小步，都给自己一句温柔的肯定。\n\n小旅会一直在这里，陪你慢慢把心情调回舒适的频率。</string>
+
+    <!-- 我的 -->
+    <string name="profile_user_id">SoulCapsule 用户</string>
+    <string name="profile_period_week">周</string>
+    <string name="profile_period_month">月</string>
+    <string name="profile_period_year">年</string>
+    <string name="profile_time_prev">上一段</string>
+    <string name="profile_time_next">下一段</string>
+    <string name="profile_main_title">❤️ 心情统计与分析</string>
+    <string name="profile_calendar_week">心情周历</string>
+    <string name="profile_calendar_month">心情月历</string>
+    <string name="profile_calendar_year">心情年历</string>
+    <string name="profile_view_all">查看全部</string>
+    <string name="profile_mood_distribution">心情分布</string>
+    <string name="profile_mood_trend">心情趋势</string>
+    <string name="profile_trend_hint_week">本周还需要记录 %1$d 天才能查看心情趋势哦</string>
+    <string name="profile_trend_hint_month">本月数据加载中，继续记录可查看更完整趋势</string>
+    <string name="profile_go_record">去记录</string>
+    <string name="profile_happy_title">让我心情愉悦的事</string>
+    <string name="profile_sad_title">让我烦恼的事</string>
+    <string name="profile_toast_switch">切换至 %1$s 视图</string>
+    <string name="profile_toast_view_all">查看全部记录</string>
+
+    <!-- AI 聊天 -->
+    <string name="ai_chat_title">智能旅伴小旅</string>
+    <string name="ai_chat_back">返回</string>
+    <string name="ai_chat_input_hint">说说你的心情…</string>
+    <string name="ai_chat_welcome">你好，我是小旅。无论开心还是低落，都可以在这里慢慢说给我听。</string>
+    <string name="ai_chat_reply_placeholder">我感受到你现在的情绪了，愿意和我多说说吗？</string>
+</resources>

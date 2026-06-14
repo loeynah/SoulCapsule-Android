@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_warm_white"
+    tools:context=".AiChatActivity">
+
+    <!-- 顶部导航 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:paddingHorizontal="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/btn_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/ai_chat_back"
+            android:padding="8dp"
+            android:src="@drawable/ic_back"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ai_chat_title"
+            android:textColor="@color/text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <com.stfalcon.chatkit.messages.MessagesList
+        android:id="@+id/messages_list"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:incomingAvatarHeight="40dp"
+        app:incomingAvatarWidth="40dp"
+        app:incomingBubbleDrawable="@drawable/shape_chat_bubble_incoming"
+        app:incomingDefaultBubbleColor="@color/white"
+        app:incomingTextColor="@color/text_primary"
+        app:incomingTextSize="15sp"
+        app:layout_constraintBottom_toTopOf="@id/message_input"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:outcomingBubbleDrawable="@drawable/shape_chat_bubble_outgoing"
+        app:outcomingDefaultBubbleColor="@color/theme_orange"
+        app:outcomingTextColor="@color/white"
+        app:outcomingTextSize="15sp" />
+
+    <com.stfalcon.chatkit.messages.MessageInput
+        android:id="@+id/message_input"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:inputBackground="@color/white"
+        app:inputButtonDefaultBgColor="@color/theme_orange"
+        app:inputButtonDefaultBgDisabledColor="@color/input_border"
+        app:inputButtonDefaultBgPressedColor="@color/theme_orange_alt"
+        app:inputButtonDefaultIconColor="@color/white"
+        app:inputButtonHeight="40dp"
+        app:inputButtonWidth="40dp"
+        app:inputHint="@string/ai_chat_input_hint"
+        app:inputHintColor="@color/text_secondary"
+        app:inputMaxLines="4"
+        app:inputTextColor="@color/text_primary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:showAttachmentButton="false" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
