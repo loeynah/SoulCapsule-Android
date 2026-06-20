@@ -38,9 +38,6 @@ for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
-@rem 强制使用完整 JDK（含 jlink），避免 Cursor/IDE 内置 JRE 导致 androidJdkImage 编译失败
-if exist "E:\JDK21\jdk-21.0.10\bin\jlink.exe" set "JAVA_HOME=E:\JDK21\jdk-21.0.10"
-
 @rem Find java.exe
 if defined JAVA_HOME goto findJavaFromJavaHome
 
