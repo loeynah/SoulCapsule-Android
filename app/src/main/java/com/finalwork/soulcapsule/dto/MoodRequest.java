@@ -13,7 +13,7 @@ public class MoodRequest {
     }
 
     public MoodRequest(Long userId, String moodType, String content) {
-        this(userId, moodType, content, null, null);
+        this(null, userId, moodType, content, null, null);
     }
 
     public MoodRequest(Long userId, String moodType, String content, String imageUrl) {
